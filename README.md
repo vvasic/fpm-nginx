@@ -1,6 +1,4 @@
-# FPM/Nginx - [Dockerhub Repo](https://hub.docker.com/r/bkuhl/fpm-nginx/)
-
-[![Build Status](https://travis-ci.org/bkuhl/fpm-nginx.svg?branch=master)](https://travis-ci.org/bkuhl/fpm-nginx)
+# FPM/Nginx - [view on github](https://github.com/vvasic/fpm-nginx)
 
 This container is intended to run Laravel applications and thus comes with a few items to assist:
 
@@ -29,7 +27,7 @@ This container uses [S6 Overlay](https://github.com/just-containers/s6-overlay) 
 ## Example Dockerfile
 
 ```
-FROM bkuhl/fpm-nginx:latest
+FROM snixx/s6-fpm-nginx:latest
 
 WORKDIR /var/www/html
 
@@ -46,3 +44,5 @@ RUN composer install  --no-interaction --optimize-autoloader --no-dev --prefer-d
 
 USER root
 ```
+
+[Forked from bkuhl](https://hub.docker.com/r/bkuhl/fpm-nginx/) to add freetype/jpeg/png support for gd and nginx options
