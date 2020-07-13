@@ -153,13 +153,14 @@ RUN apk update && apk add \
         # see https://github.com/docker-library/php/issues/880
         oniguruma-dev \
         # needed for gd
-        libpng-dev libjpeg-turbo-dev \
+        freetype-dev libpng-dev libjpeg-turbo-dev oniguruma-dev \
 		# needed for xdebug
 		$PHPIZE_DEPS \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     # Installing composer
     && php /var/www/html/install_composer.php \
     # Installing common Laravel dependencies
+    && docker-php-ext-configure gd --with-freetype --with-jpeg \
     && docker-php-ext-install mbstring pdo_mysql gd \
     	# Adding opcache
     	opcache \
