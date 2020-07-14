@@ -161,7 +161,7 @@ RUN apk update && apk add \
     && php /var/www/html/install_composer.php \
     # Installing common Laravel dependencies
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install mbstring pdo_mysql gd \
+    && docker-php-ext-install mbstring pdo_mysql gd exif \
     	# Adding opcache
     	opcache \
     # For parallel composer dependency installs
