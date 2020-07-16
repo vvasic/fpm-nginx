@@ -153,15 +153,17 @@ RUN apk update && apk add \
         # see https://github.com/docker-library/php/issues/880
         oniguruma-dev \
         # needed for gd
-        freetype-dev libpng-dev libjpeg-turbo-dev oniguruma-dev \
+        freetype-dev libpng-dev libjpeg-turbo-dev \
 		# needed for xdebug
 		$PHPIZE_DEPS \
+		# needed for mongodb
+		openssl-dev \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     # Installing composer
     && php /var/www/html/install_composer.php \
     # Installing common Laravel dependencies
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install mbstring pdo_mysql gd exif \
+    && docker-php-ext-install mbstring pdo_mysql gd exif\
     	# Adding opcache
     	opcache \
     # For parallel composer dependency installs
@@ -170,6 +172,7 @@ RUN apk update && apk add \
     && chown -R www-data:www-data /home/www-data/ /var/www/html \
     && rm /var/www/html/install_composer.php
 
+RUN pecl install mongodb && docker-php-ext-enable mongodb
 
 # ------------------------ xdebug ------------------------
 ARG XDEBUG_ENABLE=false
