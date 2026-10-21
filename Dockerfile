@@ -197,8 +197,8 @@ RUN if [ "$XDEBUG_ENABLE" = "true" ]; then \
 COPY services.d /etc/services.d
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Adding the opcache configuration into the wrong directory intentionally.
-# This is enabled at runtime
+# Adding the opcache configuration outside conf.d intentionally.
+# The php-fpm service moves it into conf.d at runtime when APP_ENV=production
 ADD opcache.ini /usr/local/etc/php/opcache_disabled.ini
 
 ADD healthcheck.ini /usr/local/etc/php/healthcheck.ini
