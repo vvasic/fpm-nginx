@@ -203,6 +203,8 @@ ADD opcache.ini /usr/local/etc/php/opcache_disabled.ini
 
 ADD healthcheck.ini /usr/local/etc/php/healthcheck.ini
 
+COPY expose_php.ini /usr/local/etc/php/conf.d/expose_php.ini
+
 RUN rm -rf /var/cache/apk/* && \
         rm -rf /tmp/*
 
