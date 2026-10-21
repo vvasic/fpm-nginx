@@ -1,4 +1,4 @@
-FROM local/php:7.4-fpm-alpine3.11-cve2026
+FROM snixx/php:7.4-fpm-alpine3.11-cve2026@sha256:01f2d19b94332ba1594aa05d83d647f6acfc63d117bc886fe2cf10fcc604b114
 
 WORKDIR /var/www/html
 

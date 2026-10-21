@@ -26,14 +26,20 @@ This container uses [S6 Overlay](https://github.com/just-containers/s6-overlay) 
 
 ## Building
 
-`Dockerfile` starts `FROM local/php:7.4-fpm-alpine3.11-cve2026`, which is not on any registry. Build that base from `php74-cve/` first (PHP 7.4 from php-src commit 712e60f9ed, the CVE-2026-109618/109619 backport), then this image on top of it:
+`Dockerfile` starts `FROM snixx/php:7.4-fpm-alpine3.11-cve2026`, pinned by digest. That base is PHP 7.4 built from php-src commit 712e60f9ed (the CVE-2026-109618/109619 backport) by the recipe in `php74-cve/`, and it is on Docker Hub, so building this image needs no local base:
 
 ```
-docker build --platform linux/amd64 -t local/php:7.4-fpm-alpine3.11-cve2026 php74-cve
 docker build --platform linux/amd64 -t snixx/s6-fpm-nginx:latest .
 ```
 
-`--platform linux/amd64` is required on ARM hosts such as Apple Silicon: the Dockerfile installs the amd64 build of s6-overlay, and the published image is amd64. Run both builds with the default `docker` builder so the second one finds the base image locally.
+`--platform linux/amd64` is required on ARM hosts such as Apple Silicon: the Dockerfile installs the amd64 build of s6-overlay, and the published image is amd64.
+
+To change the base, rebuild it from `php74-cve/`, push it under a new tag, and point the `FROM` line at the new tag and digest:
+
+```
+docker build --platform linux/amd64 -t snixx/php:<new-tag> php74-cve
+docker push snixx/php:<new-tag>
+```
 
 ## Example Dockerfile
 
