@@ -204,6 +204,9 @@ ADD opcache.ini /usr/local/etc/php/opcache_disabled.ini
 ADD healthcheck.ini /usr/local/etc/php/healthcheck.ini
 
 COPY expose_php.ini /usr/local/etc/php/conf.d/expose_php.ini
+# Must sort before zz-docker.conf: app images add section-less pool files (zz-pm.conf, zzz-custom.conf)
+# that inherit the last section opened, and FPM refuses to start if that section is [global]
+COPY fpm-global.conf /usr/local/etc/php-fpm.d/fpm-global.conf
 
 RUN rm -rf /var/cache/apk/* && \
         rm -rf /tmp/*
