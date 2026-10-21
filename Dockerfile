@@ -1,4 +1,4 @@
-FROM php:7.4.2-fpm-alpine3.11
+FROM local/php:7.4-fpm-alpine3.11-cve2026
 
 WORKDIR /var/www/html
 
@@ -154,9 +154,11 @@ RUN apk update && apk add \
         oniguruma-dev \
         gmp-dev \
         # needed for gd
-        freetype-dev libpng-dev libjpeg-turbo-dev oniguruma-dev \
+        freetype-dev libpng-dev libjpeg-turbo-dev \
 		# needed for xdebug
 		$PHPIZE_DEPS \
+		# needed for mongodb
+		openssl-dev \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
     # Installing composer
     && php /var/www/html/install_composer.php \
@@ -171,6 +173,7 @@ RUN apk update && apk add \
     && chown -R www-data:www-data /home/www-data/ /var/www/html \
     && rm /var/www/html/install_composer.php
 
+RUN pecl install mongodb-1.17.2 && docker-php-ext-enable mongodb
 
 # ------------------------ xdebug ------------------------
 ARG XDEBUG_ENABLE=false

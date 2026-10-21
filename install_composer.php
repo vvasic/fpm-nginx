@@ -24,6 +24,6 @@ if (hash_file('SHA384', 'composer-setup.php') === $hash) {
 
 echo PHP_EOL;
 
-shell_exec('php composer-setup.php --install-dir=/usr/bin --filename=composer');
+shell_exec('php composer-setup.php --install-dir=/usr/bin --filename=composer --version=2.6.6');
 
 unlink('composer-setup.php');
