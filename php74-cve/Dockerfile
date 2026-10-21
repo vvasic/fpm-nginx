@@ -1,10 +1,11 @@
 #
-# NOTE: THIS DOCKERFILE IS GENERATED VIA "apply-templates.sh"
-#
-# PLEASE DO NOT EDIT IT DIRECTLY.
+# Based on docker-library/php 7.4/alpine3.16/fpm at 1361ba95d8 (the last revision before
+# PHP 7.4 was removed). PHP 7.4 is EOL, so CVE-2026-109618/109619 ship only as a source
+# backport; this builds php-src from that commit instead of a release tarball.
 #
 
-FROM alpine:3.16
+# Alpine 3.11 matches the OS of php:7.4.2-fpm-alpine3.11, which the running images are built on.
+FROM alpine:3.11
 
 # dependencies required for running "phpize"
 # these get automatically installed and removed by "docker-php-ext-*" (unless they're already installed)
@@ -29,7 +30,9 @@ RUN apk add --no-cache \
 		openssl
 
 # ensure www-data user exists
+# Alpine < 3.14 has no www-data group in its base image
 RUN set -eux; \
+	addgroup -g 82 -S www-data; \
 	adduser -u 82 -D -S -G www-data www-data
 # 82 is the standard uid/gid for "www-data" in Alpine
 # https://git.alpinelinux.org/aports/tree/main/apache2/apache2.pre-install?h=3.14-stable
@@ -55,35 +58,29 @@ ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
-ENV GPG_KEYS 42670A7FE4D0441C8E4632349E4FDC074A4EF02D 5A52880781F755608BF815FC910DEB46F53EA312
+# php-src branch PHP-7.4-CVE-2026-109618-109619: php-7.4.33 plus "Avoid state corruption via bailout"
+ENV PHP_VERSION 7.4.34-dev
+ENV PHP_SRC_URL="https://github.com/php/php-src.git" PHP_SRC_COMMIT="712e60f9edfd03f0960fc4fc3c2c375f42b90aa2"
 
-ENV PHP_VERSION 7.4.33
-ENV PHP_URL="https://www.php.net/distributions/php-7.4.33.tar.xz" PHP_ASC_URL="https://www.php.net/distributions/php-7.4.33.tar.xz.asc"
-ENV PHP_SHA256="924846abf93bc613815c55dd3f5809377813ac62a9ec4eb3778675b82a27b927"
-
+# Fetching by full commit hash pins the tree by content. The checkout is repacked as
+# /usr/src/php.tar.xz because docker-php-source (and so docker-php-ext-install) expects
+# that tarball. A git tree has no configure script, so buildconf generates it first.
 RUN set -eux; \
 	\
-	apk add --no-cache --virtual .fetch-deps gnupg; \
+	apk add --no-cache --virtual .fetch-deps autoconf git; \
 	\
-	mkdir -p /usr/src; \
+	mkdir -p /usr/src/php; \
+	cd /usr/src/php; \
+	git init -q; \
+	git fetch -q --depth 1 "$PHP_SRC_URL" "$PHP_SRC_COMMIT"; \
+	git checkout -q FETCH_HEAD; \
+	[ "$(git rev-parse HEAD)" = "$PHP_SRC_COMMIT" ]; \
+	./buildconf --force; \
+	rm -rf .git autom4te.cache; \
+	\
 	cd /usr/src; \
-	\
-	curl -fsSL -o php.tar.xz "$PHP_URL"; \
-	\
-	if [ -n "$PHP_SHA256" ]; then \
-		echo "$PHP_SHA256 *php.tar.xz" | sha256sum -c -; \
-	fi; \
-	\
-	if [ -n "$PHP_ASC_URL" ]; then \
-		curl -fsSL -o php.tar.xz.asc "$PHP_ASC_URL"; \
-		export GNUPGHOME="$(mktemp -d)"; \
-		for key in $GPG_KEYS; do \
-			gpg --batch --keyserver keyserver.ubuntu.com --recv-keys "$key"; \
-		done; \
-		gpg --batch --verify php.tar.xz.asc php.tar.xz; \
-		gpgconf --kill all; \
-		rm -rf "$GNUPGHOME"; \
-	fi; \
+	tar -cJf php.tar.xz php; \
+	rm -rf php; \
 	\
 	apk del --no-network .fetch-deps
 
@@ -93,6 +90,8 @@ RUN set -eux; \
 	apk add --no-cache --virtual .build-deps \
 		$PHPIZE_DEPS \
 		argon2-dev \
+# release tarballs ship the generated Zend/JSON/date parsers; a git tree needs bison (and re2c) to build them
+		bison \
 		coreutils \
 		curl-dev \
 		gnu-libiconv-dev \
