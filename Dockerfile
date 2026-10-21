@@ -1,4 +1,4 @@
-FROM php:7.4.2-fpm-alpine3.11
+FROM local/php:7.4-fpm-alpine3.11-cve2026
 
 WORKDIR /var/www/html
 
@@ -173,7 +173,7 @@ RUN apk update && apk add \
     && chown -R www-data:www-data /home/www-data/ /var/www/html \
     && rm /var/www/html/install_composer.php
 
-RUN pecl install mongodb && docker-php-ext-enable mongodb
+RUN pecl install mongodb-1.17.2 && docker-php-ext-enable mongodb
 
 # ------------------------ xdebug ------------------------
 ARG XDEBUG_ENABLE=false
