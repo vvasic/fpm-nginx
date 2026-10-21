@@ -152,6 +152,7 @@ RUN apk add --no-cache curl \
 RUN apk update && apk add \
         # see https://github.com/docker-library/php/issues/880
         oniguruma-dev \
+        gmp-dev \
         # needed for gd
         freetype-dev libpng-dev libjpeg-turbo-dev \
 		# needed for xdebug
@@ -163,11 +164,11 @@ RUN apk update && apk add \
     && php /var/www/html/install_composer.php \
     # Installing common Laravel dependencies
     && docker-php-ext-configure gd --with-freetype --with-jpeg \
-    && docker-php-ext-install mbstring pdo_mysql gd exif\
+    && docker-php-ext-install mbstring pdo_mysql gd exif bcmath gmp \
     	# Adding opcache
     	opcache \
     # For parallel composer dependency installs
-    && composer global require hirak/prestissimo \
+#    && composer global require hirak/prestissimo \
     && mkdir -p /home/www-data/.composer/cache \
     && chown -R www-data:www-data /home/www-data/ /var/www/html \
     && rm /var/www/html/install_composer.php
