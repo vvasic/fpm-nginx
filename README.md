@@ -24,6 +24,17 @@ For a container to run cron and other CLI tasks, check out [bkuhl/php](https://g
 
 This container uses [S6 Overlay](https://github.com/just-containers/s6-overlay) as it's process monitoring solution.  Add a new directory to `services.d` with a `run` file in it where `run` in a shell script that kicks off the process.  The rest is taken care of for you.
 
+## Building
+
+`Dockerfile` starts `FROM local/php:7.4-fpm-alpine3.11-cve2026`, which is not on any registry. Build that base from `php74-cve/` first (PHP 7.4 from php-src commit 712e60f9ed, the CVE-2026-109618/109619 backport), then this image on top of it:
+
+```
+docker build --platform linux/amd64 -t local/php:7.4-fpm-alpine3.11-cve2026 php74-cve
+docker build --platform linux/amd64 -t snixx/s6-fpm-nginx:latest .
+```
+
+`--platform linux/amd64` is required on ARM hosts such as Apple Silicon: the Dockerfile installs the amd64 build of s6-overlay, and the published image is amd64. Run both builds with the default `docker` builder so the second one finds the base image locally.
+
 ## Example Dockerfile
 
 ```
