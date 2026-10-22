@@ -2,7 +2,7 @@
 
 # Enable opcache for production
 if [ "$APP_ENV" == "production" ]; then
-  mv /usr/local/etc/php/opcache_disabled.ini /usr/local/etc/php/opcache.ini
+  mv /usr/local/etc/php/opcache_disabled.ini /usr/local/etc/php/conf.d/opcache.ini
   echo "Enabling PHP-FPM's opcache for production";
 else
   echo "PHP-FPM's opcache is NOT enabled";

@@ -1,4 +1,4 @@
-FROM local/php:7.4-fpm-alpine3.11-cve2026
+FROM snixx/php:7.4-fpm-alpine3.11-cve2026@sha256:01f2d19b94332ba1594aa05d83d647f6acfc63d117bc886fe2cf10fcc604b114
 
 WORKDIR /var/www/html
 
@@ -197,11 +197,16 @@ RUN if [ "$XDEBUG_ENABLE" = "true" ]; then \
 COPY services.d /etc/services.d
 COPY nginx.conf /etc/nginx/nginx.conf
 
-# Adding the opcache configuration into the wrong directory intentionally.
-# This is enabled at runtime
+# Adding the opcache configuration outside conf.d intentionally.
+# The php-fpm service moves it into conf.d at runtime when APP_ENV=production
 ADD opcache.ini /usr/local/etc/php/opcache_disabled.ini
 
 ADD healthcheck.ini /usr/local/etc/php/healthcheck.ini
+
+COPY expose_php.ini /usr/local/etc/php/conf.d/expose_php.ini
+# Must sort before zz-docker.conf: app images add section-less pool files (zz-pm.conf, zzz-custom.conf)
+# that inherit the last section opened, and FPM refuses to start if that section is [global]
+COPY fpm-global.conf /usr/local/etc/php-fpm.d/fpm-global.conf
 
 RUN rm -rf /var/cache/apk/* && \
         rm -rf /tmp/*
