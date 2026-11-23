@@ -1,7 +1,8 @@
 #
 # Based on docker-library/php 7.4/alpine3.16/fpm at 1361ba95d8 (the last revision before
 # PHP 7.4 was removed). PHP 7.4 is EOL, so CVE-2026-109618/109619 ship only as a source
-# backport; this builds php-src from that commit instead of a release tarball.
+# backport; this builds php-src from that commit instead of a release tarball, with the
+# 7.4 adaptations of the November 2026 security fixes in patches/ applied on top.
 #
 
 # Alpine 3.11 matches the OS of php:7.4.2-fpm-alpine3.11, which the running images are built on.
@@ -58,13 +59,19 @@ ENV PHP_CFLAGS="-fstack-protector-strong -fpic -fpie -O2 -D_LARGEFILE_SOURCE -D_
 ENV PHP_CPPFLAGS="$PHP_CFLAGS"
 ENV PHP_LDFLAGS="-Wl,-O1 -pie"
 
-# php-src branch PHP-7.4-CVE-2026-109618-109619: php-7.4.33 plus "Avoid state corruption via bailout"
-ENV PHP_VERSION 7.4.34-dev
+# php-src branch PHP-7.4-CVE-2026-109618-109619: php-7.4.33 plus "Avoid state corruption via bailout",
+# plus patches/ (one per CVE of the 19 Nov 2026 release). The version suffix marks the
+# patched build; it must hold no '.', which configure would read as a version separator.
+ENV PHP_VERSION 7.4.34-dev-nov2026
 ENV PHP_SRC_URL="https://github.com/php/php-src.git" PHP_SRC_COMMIT="712e60f9edfd03f0960fc4fc3c2c375f42b90aa2"
 
-# Fetching by full commit hash pins the tree by content. The checkout is repacked as
+COPY patches /usr/src/php-patches
+
+# Fetching by full commit hash pins the tree by content. The patches go in with git apply,
+# which refuses any hunk that does not match exactly. The checkout is repacked as
 # /usr/src/php.tar.xz because docker-php-source (and so docker-php-ext-install) expects
-# that tarball. A git tree has no configure script, so buildconf generates it first.
+# that tarball. A git tree has no configure script, so buildconf generates it first, after
+# the version is written into configure.ac.
 RUN set -eux; \
 	\
 	apk add --no-cache --virtual .fetch-deps autoconf git; \
@@ -75,8 +82,12 @@ RUN set -eux; \
 	git fetch -q --depth 1 "$PHP_SRC_URL" "$PHP_SRC_COMMIT"; \
 	git checkout -q FETCH_HEAD; \
 	[ "$(git rev-parse HEAD)" = "$PHP_SRC_COMMIT" ]; \
+	for patch in /usr/src/php-patches/*.patch; do \
+		git apply --verbose "$patch"; \
+	done; \
+	sed -i "s/^AC_INIT(\[PHP\],\[[^]]*\]/AC_INIT([PHP],[$PHP_VERSION]/" configure.ac; \
 	./buildconf --force; \
-	rm -rf .git autom4te.cache; \
+	rm -rf .git autom4te.cache /usr/src/php-patches; \
 	\
 	cd /usr/src; \
 	tar -cJf php.tar.xz php; \
@@ -201,7 +212,8 @@ RUN set -eux; \
 	rm -rf /tmp/pear ~/.pearrc; \
 	\
 # smoke test
-	php --version
+	php --version; \
+	[ "$(php -r 'echo PHP_VERSION;')" = "$PHP_VERSION" ]
 
 COPY docker-php-ext-* docker-php-entrypoint /usr/local/bin/
 
