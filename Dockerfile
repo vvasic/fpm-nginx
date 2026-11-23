@@ -1,17 +1,20 @@
-FROM snixx/php:7.4-fpm-alpine3.11-cve2026@sha256:01f2d19b94332ba1594aa05d83d647f6acfc63d117bc886fe2cf10fcc604b114
+# Pin by digest once this tag is pushed to Docker Hub (see README).
+FROM snixx/php:7.4-fpm-alpine3.11-cve2026-nov
 
 WORKDIR /var/www/html
 
 COPY install_composer.php /var/www/html/install_composer.php
 
 ENV S6_OVERLAY_VERSION=v1.22.1.0
-ENV NGINX_VERSION 1.17.6
+ENV NGINX_VERSION 1.30.8
+# SHA-256 of nginx-1.30.8.tar.gz, whose signature by the nginx release key
+# D6786CE303D9A9022998DC6CC8464D549AF75C0A was checked when the version was bumped.
+ENV NGINX_SHA256 f867314ada32e717b949930859656c48a72dc6657aec598db58af2f98a40e1c1
 
 # ------------------------ add nginx ------------------------
 # Taken from official nginx container Dockerfile
 
-RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
-	&& CONFIG="\
+RUN CONFIG="\
 		--prefix=/etc/nginx \
 		--sbin-path=/usr/sbin/nginx \
 		--modules-path=/usr/lib/nginx/modules \
@@ -67,26 +70,11 @@ RUN GPG_KEYS=B0F4253373F8F6F510D42178520A9993A1C052F8 \
 		zlib-dev \
 		linux-headers \
 		curl \
-		gnupg1 \
 		libxslt-dev \
 		gd-dev \
 		geoip-dev \
 	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz -o nginx.tar.gz \
-	&& curl -fSL https://nginx.org/download/nginx-$NGINX_VERSION.tar.gz.asc  -o nginx.tar.gz.asc \
-	&& export GNUPGHOME="$(mktemp -d)" \
-	&& found=''; \
-	for server in \
-		ha.pool.sks-keyservers.net \
-		hkp://keyserver.ubuntu.com:80 \
-		hkp://p80.pool.sks-keyservers.net:80 \
-		pgp.mit.edu \
-	; do \
-		echo "Fetching GPG key $GPG_KEYS from $server"; \
-		gpg --keyserver "$server" --keyserver-options timeout=10 --recv-keys "$GPG_KEYS" && found=yes && break; \
-	done; \
-	test -z "$found" && echo >&2 "error: failed to fetch GPG key $GPG_KEYS" && exit 1; \
-	gpg --batch --verify nginx.tar.gz.asc nginx.tar.gz \
-	&& rm -rf "$GNUPGHOME" nginx.tar.gz.asc \
+	&& echo "$NGINX_SHA256  nginx.tar.gz" | sha256sum -c - \
 	&& mkdir -p /usr/src \
 	&& tar -zxC /usr/src -f nginx.tar.gz \
 	&& rm nginx.tar.gz \
@@ -204,6 +192,7 @@ ADD opcache.ini /usr/local/etc/php/opcache_disabled.ini
 ADD healthcheck.ini /usr/local/etc/php/healthcheck.ini
 
 COPY expose_php.ini /usr/local/etc/php/conf.d/expose_php.ini
+COPY upload_progress.ini /usr/local/etc/php/conf.d/upload_progress.ini
 # Must sort before zz-docker.conf: app images add section-less pool files (zz-pm.conf, zzz-custom.conf)
 # that inherit the last section opened, and FPM refuses to start if that section is [global]
 COPY fpm-global.conf /usr/local/etc/php-fpm.d/fpm-global.conf
