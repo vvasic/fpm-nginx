@@ -26,19 +26,36 @@ This container uses [S6 Overlay](https://github.com/just-containers/s6-overlay) 
 
 ## Building
 
-`Dockerfile` starts `FROM snixx/php:7.4-fpm-alpine3.11-cve2026`, pinned by digest. That base is PHP 7.4 built from php-src commit 712e60f9ed (the CVE-2026-109618/109619 backport) by the recipe in `php74-cve/`, and it is on Docker Hub, so building this image needs no local base:
+The image runs nginx 1.30.8, built from the nginx.org source tarball checked against the SHA-256 in `Dockerfile`, on top of `snixx/php:7.4-fpm-alpine3.11-cve2026-nov`. That base is PHP 7.4 built by the recipe in `php74-cve/` from php-src commit 712e60f9ed (the October CVE-2026-109618/109619 backport), with one patch per CVE of the 19 Nov 2026 PHP security release applied on top:
+
+| Patch in `php74-cve/patches/` | Fixes |
+|---|---|
+| `CVE-2026-126714.patch` | session files left partly overwritten (RCE) |
+| `CVE-2026-115560.patch` | session serializer mismatch via upload progress (RCE); `session.upload_progress.enabled` now defaults to 0 |
+| `CVE-2026-129289.patch` | PHP-FPM request smuggling through an unread body |
+| `CVE-2026-129496.patch` | timezone cache use-after-free |
+| `CVE-2026-129481.patch` | use-after-free after an interrupted request shutdown |
+| `CVE-2026-129291.patch` | PHP-FPM worker pipe closed twice (epoll use-after-free) |
+| `CVE-2026-129292.patch` | XSS on the PHP-FPM status page |
+| `CVE-2026-128090.patch` | phar OpenSSL signature downgrade |
+| `CVE-2026-128064.patch` | mixed-case `HTTPS://` and `FTPS://` URLs sent in plaintext |
+| `CVE-2026-127960.patch` | folded response headers (7.4 has no affected code; the patch adds a test) |
+
+PHP 7.4 is end of life, so these are 7.4 adaptations of the upstream php-src fixes. Each patch starts with the upstream commit it carries and how it was adapted. The build applies them with `git apply`, which stops on any hunk that does not match, and reports its version as `7.4.34-dev-nov2026` (the October build reported `7.4.34-dev`). `upload_progress.ini` also sets `session.upload_progress.enabled = 0` for the CLI and FPM.
+
+Build the base first, then this image:
 
 ```
-docker build --platform linux/amd64 -t snixx/s6-fpm-nginx:latest .
+docker build --platform linux/amd64 -t snixx/php:7.4-fpm-alpine3.11-cve2026-nov php74-cve
+docker build --platform linux/amd64 -t snixx/s6-fpm-nginx:7.4-cve2026-nov -t snixx/s6-fpm-nginx:latest .
 ```
 
 `--platform linux/amd64` is required on ARM hosts such as Apple Silicon: the Dockerfile installs the amd64 build of s6-overlay, and the published image is amd64.
 
-To change the base, rebuild it from `php74-cve/`, push it under a new tag, and point the `FROM` line at the new tag and digest:
+The `FROM` line names the base by tag, so it builds from a local base. Once the base is pushed, pin the `FROM` line to its digest as well:
 
 ```
-docker build --platform linux/amd64 -t snixx/php:<new-tag> php74-cve
-docker push snixx/php:<new-tag>
+docker push snixx/php:7.4-fpm-alpine3.11-cve2026-nov
 ```
 
 ## Example Dockerfile
