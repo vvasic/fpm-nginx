@@ -43,19 +43,19 @@ The image runs nginx 1.30.8, built from the nginx.org source tarball checked aga
 
 PHP 7.4 is end of life, so these are 7.4 adaptations of the upstream php-src fixes. Each patch starts with the upstream commit it carries and how it was adapted. The build applies them with `git apply`, which stops on any hunk that does not match, and reports its version as `7.4.34-dev-nov2026` (the October build reported `7.4.34-dev`). `upload_progress.ini` also sets `session.upload_progress.enabled = 0` for the CLI and FPM.
 
-Build the base first, then this image:
+`Dockerfile` starts `FROM snixx/php:7.4-fpm-alpine3.11-cve2026-nov`, pinned by digest. That base is on Docker Hub, so building this image needs no local base:
 
 ```
-docker build --platform linux/amd64 -t snixx/php:7.4-fpm-alpine3.11-cve2026-nov php74-cve
 docker build --platform linux/amd64 -t snixx/s6-fpm-nginx:7.4-cve2026-nov -t snixx/s6-fpm-nginx:latest .
 ```
 
 `--platform linux/amd64` is required on ARM hosts such as Apple Silicon: the Dockerfile installs the amd64 build of s6-overlay, and the published image is amd64.
 
-The `FROM` line names the base by tag, so it builds from a local base. Once the base is pushed, pin the `FROM` line to its digest as well:
+To change the base, rebuild it from `php74-cve/`, push it under a new tag, and point the `FROM` line at the new tag and digest:
 
 ```
-docker push snixx/php:7.4-fpm-alpine3.11-cve2026-nov
+docker build --platform linux/amd64 -t snixx/php:<new-tag> php74-cve
+docker push snixx/php:<new-tag>
 ```
 
 ## Example Dockerfile

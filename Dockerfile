@@ -1,5 +1,4 @@
-# Pin by digest once this tag is pushed to Docker Hub (see README).
-FROM snixx/php:7.4-fpm-alpine3.11-cve2026-nov
+FROM snixx/php:7.4-fpm-alpine3.11-cve2026-nov@sha256:3f1e679928a97ad4a731ec05598bb2155d3d82d5912d6425f0b5818327dbf78e
 
 WORKDIR /var/www/html
 
